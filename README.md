@@ -2,6 +2,11 @@
 
 Clean loot roll frames for **WoW Forever** (the official Blizzard beta client). Lightweight and standalone.
 
+<p align="center">
+  <img src="assets/screenshot-roll-frames.png" alt="CleanLoot roll frames">
+  <img src="assets/screenshot-votes-queue.png" alt="Vote counters, the waiting queue and the hasn't-rolled-yet clock (simulated drops)" height="520">
+</p>
+
 ## Features
 
 - **Its own roll frames** in place of Blizzard's: item icon with tooltip (**Ctrl+click** to preview, **Shift+click** to link in chat), name and border coloured by quality, timer bar, and **Need / Greed / Pass** (Forever has no Disenchant or Transmog rolls)
