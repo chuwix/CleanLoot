@@ -16,7 +16,7 @@ Clean loot roll frames for **WoW Forever** (the official Blizzard beta client). 
 - **After a `/reload`**, rolls still running are brought back
 - **Blizzard's own roll frames are hidden** (and stop catching clicks). the options bring them back
 - **Less chat spam**: the per-roll lines (who selected what, roll values) are filtered out; **who won what** and your loot stay visible. Blizzard's *Loot Rolls* history window keeps everything
-- **Winner popup**: when a roll ends, a small card shows who won and with which roll, and always your own roll (rolled, passed or did not answer). Hover it for every roll of the drop; right-click closes it. It stands in for the roll lines the chat filter hides
+- **Winner popup**: when a roll ends, a small card shows who won and with which roll, and always your own roll (rolled, passed or did not answer). Hover it for every roll of the drop; right-click closes it. It stacks downwards or upwards, as you choose. It stands in for the roll lines the chat filter hides
 - **Loot toast options** (off by default): hide the "You won" banner (all of them, or only for the items the winner popup reports), shrink it, or move the alert banners (*Loot toasts* column of the options)
 - **Minimap button**: left-click the loot history, right-click the options
 - Options under *Game Menu → Options → AddOns → CleanLoot* (or just `/cll`): stacking direction, scale, position lock, Blizzard's frames, chat filter, loot toasts, minimap button

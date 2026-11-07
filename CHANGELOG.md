@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.2.1
+- The winner popup has its own stacking direction (downwards or upwards) in the options, independent of the roll frames. Until you pick one it follows the roll frames, as before.
+
 ## 1.2.0
 - **Winner popup**: when a roll ends, a small card says who won the item and with which roll, shown as the game's own dice (Need) or coin (Greed) and the number. Your own roll is always on it (or *You passed* / *You did not roll*). Hover a card for every roll of that drop, Need before Greed; right-click closes it. It fades after ten seconds. The roll lines stay out of the chat: the numbers are here now. On by default; turn it off in the options (*Winner popup*).
 - The popup has its own spot, left of the roll frames, and its own **Move** and **Reset** buttons in the options (a sample card to drag, whatever the lock says). `/cll sim` shows a result card too.

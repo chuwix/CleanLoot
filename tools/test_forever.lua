@@ -1108,5 +1108,32 @@ hw:SetChecked(false)
 hw.__scripts.OnClick(hw)
 check(CL.db.hideToastsInPopup == false, "...and unticking turns it off")
 
+-- 32. The winner popup stacks in its own direction
+R.Clear()
+CL.db.growDirection, CL.db.resultsDirection = "DOWN", nil
+Drop(6001, { Entry("Jessa Rhodes", "DRUID", 3, 52) }, 1)
+Drop(6002, { Entry("Jessa Rhodes", "DRUID", 3, 53) }, 1)
+WOW.FireEvent("LOOT_ROLLS_COMPLETE", 6001)
+WOW.FireEvent("LOOT_ROLLS_COMPLETE", 6002)
+local second = { R.GetCard(2):GetPoint() }
+check(R.Direction() == "DOWN" and second[1] == "TOPLEFT" and second[2] == R.GetCard(1) and second[3] == "BOTTOMLEFT",
+    "by default the popup follows the roll frames: downwards")
+CL.db.growDirection = "UP"
+R.Layout()
+second = { R.GetCard(2):GetPoint() }
+check(R.Direction() == "UP" and second[1] == "BOTTOMLEFT" and second[3] == "TOPLEFT", "...and follows them upwards")
+CL.db.growDirection = "DOWN"
+local dw, uw = CL.Options.widgets.resultsDown, CL.Options.widgets.resultsUp
+check(dw ~= nil and uw ~= nil, "the options panel has the popup's direction")
+uw.__scripts.OnClick(uw)
+second = { R.GetCard(2):GetPoint() }
+check(CL.db.resultsDirection == "UP" and CL.db.growDirection == "DOWN" and second[1] == "BOTTOMLEFT",
+    "its own setting wins, the roll frames keep theirs")
+dw.__scripts.OnClick(dw)
+second = { R.GetCard(2):GetPoint() }
+check(CL.db.resultsDirection == "DOWN" and second[1] == "TOPLEFT", "...and back downwards")
+CL.db.resultsDirection = nil
+R.Clear()
+
 io.write(("%d checks, %d failed\n"):format(checks, failures))
 os.exit(failures == 0 and 0 or 1)

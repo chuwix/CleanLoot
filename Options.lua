@@ -156,8 +156,14 @@ local function Build()
             CL.db.showResults = v
             if not v then CL.Results.Clear() end
         end)
-    widgets.resultsMove = PushButton(panel, "Move", 334, -338, 80, function() CL.Results.ToggleSample() end)
-    widgets.resultsReset = PushButton(panel, "Reset", 420, -338, 80, function() CL.Results.ResetPosition() end)
+    widgets.resultsDown = Checkbox(panel, "Stack downwards", 330, -330,
+        function() return CL.Results.Direction() ~= "UP" end,
+        function() CL.Results.SetDirection("DOWN") end)
+    widgets.resultsUp = Checkbox(panel, "Stack upwards", 470, -330,
+        function() return CL.Results.Direction() == "UP" end,
+        function() CL.Results.SetDirection("UP") end)
+    widgets.resultsMove = PushButton(panel, "Move", 334, -366, 80, function() CL.Results.ToggleSample() end)
+    widgets.resultsReset = PushButton(panel, "Reset", 420, -366, 80, function() CL.Results.ResetPosition() end)
 
     Text(panel, "Minimap", 16, -354, "GameFontNormalLarge")
     widgets.minimap = Checkbox(panel, "Hide the minimap button", 16, -378,

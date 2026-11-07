@@ -219,8 +219,19 @@ local function CreateCard()
     return f
 end
 
+-- The popup stacks its own way: its own setting, else the roll frames' direction.
+function Results.Direction()
+    local db = CL.db
+    return (db and (db.resultsDirection or db.growDirection)) or "DOWN"
+end
+
+function Results.SetDirection(direction)
+    CL.db.resultsDirection = direction
+    Results.Layout()
+end
+
 function Results.Layout()
-    local grow = (CL.db and CL.db.growDirection) or "DOWN"
+    local grow = Results.Direction()
     local scale = (CL.db and CL.db.frameScale) or CL.DEFAULT_SCALE
     local base = GetAnchor()
     local prev
