@@ -125,11 +125,12 @@ local function Build()
     widgets.chat = Checkbox(panel, "Hide roll messages from the chat (winners stay)", 16, -242,
         function() return CL.db.hideRollSpam end,
         function(v) CL.db.hideRollSpam = v end)
-    widgets.lock = Checkbox(panel, "Lock the frames' position (always movable while simulating)", 16, -268,
+    widgets.lock = Checkbox(panel, "Lock the frames' and popup's position", 16, -268,
         function() return CL.db.locked end,
         function(v) CL.db.locked = v end)
     widgets.reset = PushButton(panel, "Reset position", 20, -304, 140, function()
         CL.RollFrames.ResetPosition()
+        CL.Results.ResetPosition()
     end)
 
     -- second column, beside the short rows of the first
@@ -138,11 +139,25 @@ local function Build()
     widgets.toastHide = Checkbox(panel, "Hide it", 330, -102,
         function() return CL.db.hideToasts end,
         function(v) CL.Toasts.SetHidden(v) end)
-    widgets.toastScale = Slider(panel, "Size", 330, -140, 0.5, 1.5, 0.05, "%.2f",
+    widgets.toastHideInPopup = Checkbox(panel, "Hide it only for popup items", 330, -126,
+        function() return CL.db.hideToastsInPopup end,
+        function(v) CL.Toasts.SetHiddenInPopup(v) end)
+    widgets.toastScale = Slider(panel, "Size", 330, -164, 0.5, 1.5, 0.05, "%.2f",
         function() return CL.db.toastScale or 1 end,
         function(v) CL.Toasts.SetScale(v) end)
-    widgets.toastMove = PushButton(panel, "Move", 334, -190, 80, function() CL.Toasts.ToggleMover() end)
-    widgets.toastReset = PushButton(panel, "Reset", 420, -190, 80, function() CL.Toasts.ResetPosition() end)
+    widgets.toastMove = PushButton(panel, "Move", 334, -214, 80, function() CL.Toasts.ToggleMover() end)
+    widgets.toastReset = PushButton(panel, "Reset", 420, -214, 80, function() CL.Toasts.ResetPosition() end)
+
+    Text(panel, "Winner popup", 330, -260, "GameFontNormalLarge")
+    Text(panel, "Who won each roll and with what; your own roll too.", 330, -288, "GameFontDisableSmall")
+    widgets.results = Checkbox(panel, "Show it", 330, -306,
+        function() return CL.db.showResults end,
+        function(v)
+            CL.db.showResults = v
+            if not v then CL.Results.Clear() end
+        end)
+    widgets.resultsMove = PushButton(panel, "Move", 334, -338, 80, function() CL.Results.ToggleSample() end)
+    widgets.resultsReset = PushButton(panel, "Reset", 420, -338, 80, function() CL.Results.ResetPosition() end)
 
     Text(panel, "Minimap", 16, -354, "GameFontNormalLarge")
     widgets.minimap = Checkbox(panel, "Hide the minimap button", 16, -378,

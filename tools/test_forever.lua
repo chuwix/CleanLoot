@@ -881,5 +881,232 @@ local before = CL.db.growDirection
 SlashCmdList["CLEANLOOT"]("grow up")
 check(CL.db.growDirection == before, "the old settings commands no longer change anything")
 
+-- 30. The winner popup: who won, with what roll, and always your own roll
+local R = CL.Results
+local DICE = "|TInterface\\Buttons\\UI-GroupLoot-Dice-Up:16:16:0:-2|t"   -- Need
+local COIN = "|TInterface\\Buttons\\UI-GroupLoot-Coin-Up:16:16:0:-2|t"   -- Greed
+C_Item.GetItemInfoInstant = function() return 111, "Armor", "Cloth", "INVTYPE_HEAD", 133000 end
+check(CL.db.showResults == true, "the winner popup is on by default")
+R.Clear()
+
+local EPIC = "|cnIQ4:|Hitem:111::::::::|h[Epic Thing]|h|r"
+local function Entry(name, class, state, roll, isSelf, isWinner)
+    return { isSelf = isSelf or false, isWinner = isWinner or false, playerName = name, playerClass = class,
+        state = state, roll = roll }
+end
+local function Drop(key, rollInfos, winnerIndex)
+    local d = { lootListKey = key, itemHyperlink = EPIC, playerRollState = 3, allPassed = false, rollInfos = rollInfos }
+    if winnerIndex then
+        rollInfos[winnerIndex].isWinner = true
+        d.winner = rollInfos[winnerIndex]
+    end
+    WOW.drops[key] = d
+    return d
+end
+C_LootHistory = {
+    GetAllEncounterInfos = function() return { { encounterID = 0 } } end,
+    GetSortedDropsForEncounter = function() return {} end,
+    GetSortedInfoForDrop = function(_, key) return WOW.drops[key] end,
+}
+
+-- the game says "complete" first; the winner lands in the history just after
+Drop(5001, {
+    Entry("Jessa Rhodes", "DRUID", 3, 52), Entry("Hazas War", "WARRIOR", 3, 6, true),
+    Entry("Fruity Sham-Realm", "SHAMAN", 0, 98), Entry("Za Bo", "HUNTER", 5),
+})
+WOW.drops[5001].rollInfos[3].isWinner = false
+WOW.FireEvent("LOOT_ROLLS_COMPLETE", 5001)
+check(R.ActiveCount() == 0, "no popup while the game has not named a winner")
+WOW.drops[5001].rollInfos[3].isWinner = true
+WOW.drops[5001].winner = WOW.drops[5001].rollInfos[3]
+WOW.FireEvent("LOOT_HISTORY_UPDATE_DROP", 0, 5001)
+check(R.ActiveCount() == 1, "...it shows when the history gets the winner")
+local c1 = R.GetCard(1)
+check(c1.name:GetText() == "Epic Thing", "the card names the item")
+local wl = c1.winner:GetText()
+check(wl:find("Fruity Sham", 1, true) and not wl:find("Realm", 1, true) and wl:find("won with " .. DICE .. " 98", 1, true),
+    "...who won, without the realm, and with which roll (" .. tostring(wl) .. ")")
+check(c1.me:GetText() == "You rolled " .. COIN .. " 6", "...and your own roll when you lost (" .. tostring(c1.me:GetText()) .. ")")
+check(c1:GetHeight() == 57, "...on a third line")
+WOW.FireEvent("LOOT_HISTORY_UPDATE_DROP", 0, 5001)
+check(R.ActiveCount() == 1, "a later history update does not show it twice")
+
+-- hovering lists every roll, and keeps the card from fading
+c1.__scripts.OnEnter(c1)
+local tip = table.concat(GameTooltip.lines, "\n")
+check(wl:find("|cff0070deFruity Sham|r", 1, true), "the winner's name is in its class colour")
+check(not wl:find("classicon", 1, true) and not wl:find("SHAMAN", 1, true), "...with no class icon or class name")
+check(not tip:find("classicon", 1, true), "...nor in the list of rolls")
+check(tip:find("Epic Thing", 1, true) and tip:find("Jessa Rhodes", 1, true) and tip:find(COIN .. " 52", 1, true)
+    and tip:find(DICE .. " 98", 1, true) and tip:find("You | " .. COIN .. " 6", 1, true) and tip:find("1 passed", 1, true),
+    "hovering lists every roll, yours included, and the passes")
+check(tip:find(DICE .. " 98", 1, true) < tip:find(COIN .. " 52", 1, true), "...Need before Greed")
+WOW.Advance(20)
+check(R.ActiveCount() == 1, "a card under the mouse stays")
+c1.__scripts.OnLeave(c1)
+
+-- it fades, then goes
+WOW.Advance(10.2)
+check(c1:GetAlpha() < 1 and R.ActiveCount() == 1, "after ten seconds the card fades")
+WOW.Advance(1)
+check(R.ActiveCount() == 0, "...and goes")
+
+-- a late winner: the retries find it without any other event
+Drop(5002, { Entry("Jessa Rhodes", "DRUID", 3, 52), Entry("Hazas War", "WARRIOR", 3, 80, true) })
+WOW.FireEvent("LOOT_ROLLS_COMPLETE", 5002)
+check(R.ActiveCount() == 0, "no winner yet, nothing shown")
+WOW.drops[5002].rollInfos[2].isWinner = true
+WOW.drops[5002].winner = WOW.drops[5002].rollInfos[2]
+WOW.Advance(0.5)
+check(R.ActiveCount() == 1, "a winner that arrives late is found by the retries")
+local c2 = R.GetCard(1)
+check(c2.winner:GetText():find("You|r won with " .. COIN .. " 80", 1, true), "when you win it says so (" .. tostring(c2.winner:GetText()) .. ")")
+check(c2.me:GetText() == "" and c2:GetHeight() == 46, "...with no extra line for your roll")
+R.Clear()
+
+-- your roll when you passed, or never answered
+Drop(5003, { Entry("Jessa Rhodes", "DRUID", 3, 52), Entry("Hazas War", "WARRIOR", 5, nil, true) }, 1)
+WOW.FireEvent("LOOT_ROLLS_COMPLETE", 5003)
+check(R.GetCard(1) and R.GetCard(1).me:GetText():find("You passed", 1, true), "you passed: it says so")
+R.Clear()
+Drop(5004, { Entry("Jessa Rhodes", "DRUID", 3, 52), Entry("Hazas War", "WARRIOR", 4, nil, true) }, 1)
+WOW.FireEvent("LOOT_ROLLS_COMPLETE", 5004)
+check(R.GetCard(1) and R.GetCard(1).me:GetText():find("did not roll", 1, true), "you never answered: it says so")
+R.Clear()
+
+-- everyone passed: the chat line stays, no card
+local nobody = Drop(5005, { Entry("Jessa Rhodes", "DRUID", 5), Entry("Hazas War", "WARRIOR", 5, nil, true) })
+nobody.allPassed = true
+WOW.FireEvent("LOOT_ROLLS_COMPLETE", 5005)
+check(R.ActiveCount() == 0, "everyone passed: no card")
+
+-- a "complete" event whose key is unreadable (secret in combat): the rolls being followed are swept
+local sawSecret = issecretvalue
+Drop(5006, { Entry("Jessa Rhodes", "DRUID", 3, 52), Entry("Hazas War", "WARRIOR", 3, 10, true) })
+CL.Results.Watch(5006)   -- START_LOOT_ROLL told us this roll's key
+issecretvalue = function(v) return v == "SECRET" end
+check(CL.API.GetResult("SECRET") == nil, "a secret key gives no result")
+WOW.FireEvent("LOOT_ROLLS_COMPLETE", "SECRET")
+check(R.ActiveCount() == 0, "unreadable key and no winner yet: nothing shown")
+WOW.drops[5006].rollInfos[1].isWinner = true
+WOW.drops[5006].winner = WOW.drops[5006].rollInfos[1]
+WOW.Advance(0.5)
+issecretvalue = sawSecret
+check(R.ActiveCount() == 1 and R.GetCard(1).winner:GetText():find("Jessa Rhodes", 1, true),
+    "...the followed roll is announced anyway, once it has a winner")
+R.Clear()
+
+-- no complete event at all: the history alone tells (an undecided drop, then a winner)
+Drop(5008, { Entry("Jessa Rhodes", "DRUID", 3, 52), Entry("Hazas War", "WARRIOR", 3, 10, true) })
+WOW.FireEvent("LOOT_HISTORY_UPDATE_DROP", 0, 5008)
+check(R.ActiveCount() == 0, "an undecided drop shows nothing")
+WOW.drops[5008].rollInfos[1].isWinner = true
+WOW.drops[5008].winner = WOW.drops[5008].rollInfos[1]
+WOW.FireEvent("LOOT_HISTORY_UPDATE_DROP", 0, 5008)
+check(R.ActiveCount() == 1, "...but it is announced when its winner appears, with no complete event")
+R.Clear()
+
+-- a finished drop we never saw undecided (old history) is not announced
+Drop(5009, { Entry("Jessa Rhodes", "DRUID", 3, 52) }, 1)
+WOW.FireEvent("LOOT_HISTORY_UPDATE_DROP", 0, 5009)
+check(R.ActiveCount() == 0, "an old finished drop in the history is left alone")
+
+-- option off
+CL.db.showResults = false
+Drop(5007, { Entry("Jessa Rhodes", "DRUID", 3, 52) }, 1)
+WOW.FireEvent("LOOT_ROLLS_COMPLETE", 5007)
+check(R.ActiveCount() == 0, "with the popup off nothing is shown")
+CL.db.showResults = true
+
+-- the stack is capped, oldest dropped
+for k = 1, 10 do
+    Drop(5100 + k, { Entry("Jessa Rhodes", "DRUID", 3, k) }, 1)
+    WOW.FireEvent("LOOT_ROLLS_COMPLETE", 5100 + k)
+end
+check(R.ActiveCount() == 8, "a big drop ending at once keeps eight cards")
+check(R.GetCard(8).winner:GetText():find(COIN .. " 10", 1, true), "...the newest is kept")
+R.GetCard(1).__scripts.OnMouseUp(R.GetCard(1), "RightButton")
+check(R.ActiveCount() == 7, "right-click closes a card")
+R.Clear()
+
+-- placing the popup: a sample card, whatever the lock and the option say
+CL.db.locked, CL.db.showResults = true, false
+check(R.ToggleSample() == true and R.ActiveCount() == 1, "the Move button shows a sample card")
+check(R.CanMove(), "...which moves although everything is locked")
+WOW.Advance(30)
+check(R.ActiveCount() == 1, "...and stays until closed")
+local sample = R.GetCard(1)
+sample.__scripts.OnDragStart(sample)
+sample.__scripts.OnDragStop(sample)
+check(CL.db.resultsPoint ~= nil, "dragging it saves the spot")
+check(R.ToggleSample() == false and R.ActiveCount() == 0, "pressing Move again takes it away")
+check(not R.CanMove(), "...and the popup is locked again")
+R.ToggleSample()
+R.GetCard(1).__scripts.OnMouseUp(R.GetCard(1), "RightButton")
+check(R.ActiveCount() == 0, "right-click closes the sample too")
+CL.db.showResults = true
+local mw = CL.Options.widgets
+check(mw.resultsMove ~= nil and mw.resultsReset ~= nil, "the options panel has Move and Reset for the popup")
+mw.resultsMove.__scripts.OnClick(mw.resultsMove)
+check(R.ActiveCount() == 1, "the Move button opens the sample")
+mw.resultsReset.__scripts.OnClick(mw.resultsReset)
+check(CL.db.resultsPoint == nil, "the Reset button puts the popup back")
+R.Clear()
+
+-- from a simulated drop
+R.Clear()
+CL.Sim.Clear()
+CL.Sim.Start(1)
+local simId
+for id = 900001, 900400 do if RF.GetFrame(id) then simId = id end end
+click(simId, N)
+WOW.Advance(4)
+check(R.ActiveCount() == 1, "a simulated roll ends with a result card")
+local sc = R.GetCard(1)
+check(sc.simulated and R.CanMove(), "...which can be moved to place the popup")
+check(sc.winner:GetText():find("won", 1, true), "...naming a winner")
+R.Clear()
+check(not R.CanMove(), "once gone, the popup is locked again")
+
+-- position
+CL.db.resultsPoint = { "TOPLEFT", "CENTER", 10, 10 }
+R.ResetPosition()
+check(CL.db.resultsPoint == nil, "reset puts the popup back")
+local rw = CL.Options.widgets
+check(rw.results ~= nil, "the options panel has the winner popup checkbox")
+rw.results:SetChecked(false)
+rw.results.__scripts.OnClick(rw.results)
+check(CL.db.showResults == false, "unticking it turns the popup off")
+rw.results:SetChecked(true)
+rw.results.__scripts.OnClick(rw.results)
+check(CL.db.showResults == true, "...and ticking turns it on")
+
+-- 31. Blizzard's loot toast hidden only for the items the winner popup reports
+local function NamedBanner(text)
+    local t = NewToast(AlertFrame)
+    t.ItemName:SetText(text)
+    AlertFrame:AddAlertFrame(t)
+    return t
+end
+CL.db.hideToasts, CL.db.toastScale, CL.db.hideToastsInPopup = false, nil, false
+R.Cover("Epic Thing", 300)
+check(NamedBanner("Epic Thing"):IsShown(), "off by default: the toast of a popup item still shows")
+CL.Toasts.SetHiddenInPopup(true)
+check(not NamedBanner("|cffa335eeEpic Thing|r"):IsShown(), "on: the toast of a popup item is hidden (coloured name too)")
+check(NamedBanner("Another Item"):IsShown(), "...any other toast stays")
+WOW.FireEvent("START_LOOT_ROLL", 7777, 60000, 4242)
+check(not NamedBanner("Item7777"):IsShown(), "an item whose roll has started is covered from then on")
+CL.OnRollGone(7777)
+CL.db.showResults = false
+check(NamedBanner("Epic Thing"):IsShown(), "with the popup off nothing is hidden")
+CL.db.showResults = true
+WOW.Advance(301)
+check(NamedBanner("Epic Thing"):IsShown(), "after a while the item is not covered any more")
+local hw = CL.Options.widgets.toastHideInPopup
+check(hw ~= nil, "the options panel has the checkbox")
+hw:SetChecked(false)
+hw.__scripts.OnClick(hw)
+check(CL.db.hideToastsInPopup == false, "...and unticking turns it off")
+
 io.write(("%d checks, %d failed\n"):format(checks, failures))
 os.exit(failures == 0 and 0 or 1)

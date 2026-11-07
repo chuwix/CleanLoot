@@ -56,8 +56,15 @@ end
 -- one is watched, even with nothing to change.
 local function Wanted()
     local db = CL.db
-    return db and (db.hideToasts or db.toastScale ~= nil or db.toastPos ~= nil or db.debug
-        or db.toastGeom == nil) or false
+    return db and (db.hideToasts or db.hideToastsInPopup or db.toastScale ~= nil or db.toastPos ~= nil
+        or db.debug or db.toastGeom == nil) or false
+end
+
+-- The item a toast is about, as the toast writes it (a name, maybe coloured).
+local function ItemText(frame)
+    local item = frame.ItemName
+    if type(item) ~= "table" or not item.GetText then return nil end
+    return CL.Plain(item:GetText())
 end
 
 local PlaceMover  -- defined with the mover
@@ -108,6 +115,11 @@ end
 local function Style(frame)
     local db = CL.db
     if db.hideToasts then
+        if frame:IsShown() then frame:Hide() end
+        return
+    end
+    -- only the items the winner popup already reports
+    if db.hideToastsInPopup and CL.Results and CL.Results.Covers(ItemText(frame)) then
         if frame:IsShown() then frame:Hide() end
         return
     end
@@ -324,6 +336,11 @@ end
 -------------------------------------------------
 function Toasts.SetHidden(hide)
     CL.db.hideToasts = hide and true or false
+    Sweep()
+end
+
+function Toasts.SetHiddenInPopup(hide)
+    CL.db.hideToastsInPopup = hide and true or false
     Sweep()
 end
 

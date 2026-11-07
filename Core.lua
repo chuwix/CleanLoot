@@ -25,6 +25,7 @@ local DEFAULTS = {
     locked = true,  -- the stack cannot be dragged by accident (always movable during /cll sim)
     hideNative = true,  -- hide Blizzard's own roll frames, ours replace them
     hideRollSpam = true,  -- keep the per-roll lines out of the chat
+    showResults = true,  -- a small popup with who won each roll, and with what
 }
 
 function CL.Print(msg)
@@ -108,6 +109,7 @@ function API.TrackRoll(rollID, lootKey)
     if lootKey == nil then return end
     keyByRoll[rollID] = lootKey
     rollByKey[lootKey] = rollID
+    if CL.Results then CL.Results.Watch(lootKey) end  -- its winner is announced when known
 end
 
 function API.ForgetRoll(rollID)
@@ -220,6 +222,82 @@ function API.GetVotes(rollID)
     return votes
 end
 
+-- Name, quality and icon of an item link. The link text carries the name and (in
+-- "|cnIQ<n>:" colour tags) the quality, so most of it needs no cached item data.
+local function ItemFacts(link)
+    if type(link) ~= "string" then return nil end
+    local name = link:match("|h%[(.-)%]|h")
+    local quality = tonumber(link:match("|cnIQ(%d)"))
+    local texture
+    local instant = (C_Item and C_Item.GetItemInfoInstant) or GetItemInfoInstant
+    if instant then
+        -- itemID, type, subtype, equipLoc, icon
+        local ok, _, _, _, _, icon = pcall(instant, link)
+        if ok and icon ~= nil then texture = icon end
+    end
+    if not (name and quality) then
+        local get = (C_Item and C_Item.GetItemInfo) or GetItemInfo
+        if get then
+            local ok, n, _, q = pcall(get, link)
+            if ok then name, quality = name or n, quality or q end
+        end
+    end
+    return name, quality, texture
+end
+
+local function SortRolls(a, b)
+    if a.type ~= b.type then return (a.type or 9) < (b.type or 9) end  -- Need before Greed
+    return (a.value or -1) > (b.value or -1)
+end
+
+-- How a finished roll ended, from the loot history:
+--   { key, link, name, quality, texture, allPassed,
+--     winner = { name, class, type, value, isSelf } | nil,
+--     me = { type = nil|NEED|GREED|PASS, value = nil|number } | nil,
+--     rolls = { { name, class, type, value, isSelf, isWinner }, ... },  -- Need then Greed, best first
+--     passes = n }
+-- or nil when the drop is unknown. `winner` is nil until the game has decided.
+function API.GetResult(lootKey)
+    lootKey = Plain(lootKey)
+    if lootKey == nil then return nil end
+    local drop = FindDrop(lootKey)
+    if not drop then return nil end
+
+    local res = { key = lootKey, rolls = {}, passes = 0 }
+    res.link = Plain(drop.itemHyperlink)
+    res.name, res.quality, res.texture = ItemFacts(res.link)
+    res.allPassed = Plain(drop.allPassed) == true
+
+    local function Entry(info)
+        return {
+            name = Plain(info.playerName) or "?", class = Plain(info.playerClass),
+            type = STATE_TO_TYPE[Plain(info.state)], value = Plain(info.roll),
+            isSelf = Plain(info.isSelf) == true, isWinner = Plain(info.isWinner) == true,
+        }
+    end
+    if type(drop.rollInfos) == "table" then
+        for _, info in ipairs(drop.rollInfos) do
+            local e = Entry(info)
+            if e.isSelf then res.me = { type = e.type, value = e.value } end
+            if e.type == CL.ROLL.NEED or e.type == CL.ROLL.GREED then
+                res.rolls[#res.rolls + 1] = e
+            elseif e.type == CL.ROLL.PASS then
+                res.passes = res.passes + 1
+            end
+        end
+        table.sort(res.rolls, SortRolls)
+    end
+    if type(drop.winner) == "table" then
+        res.winner = Entry(drop.winner)
+        if not res.winner.type then
+            for _, e in ipairs(res.rolls) do
+                if e.isWinner then res.winner.type = e.type break end
+            end
+        end
+    end
+    return res
+end
+
 function API.Roll(rollID, rollType)
     local sim = CL.Sim and CL.Sim.GetRoll(rollID)
     if sim then return CL.Sim.Roll(rollID, rollType) end
@@ -271,6 +349,8 @@ function CL.OnStartLootRoll(rollID, rollTime, lootKey, startedAt, attempt)
     end
 
     API.TrackRoll(rollID, lootKey)
+    -- this item will be in the winner popup: its "You won" toast is redundant
+    if CL.Results then CL.Results.Cover(info.name, 300) end
     CL.RollFrames.Start(rollID, info, API.GetRollLink(rollID), remaining)
 end
 
@@ -339,6 +419,7 @@ watcher:RegisterEvent("ADDON_LOADED")
 watcher:RegisterEvent("START_LOOT_ROLL")
 watcher:RegisterEvent("CANCEL_LOOT_ROLL")
 watcher:RegisterEvent("LOOT_HISTORY_UPDATE_DROP")
+watcher:RegisterEvent("LOOT_ROLLS_COMPLETE")
 watcher:RegisterEvent("PLAYER_ENTERING_WORLD")
 
 watcher:SetScript("OnEvent", function(_, event, arg1, arg2, arg3)
@@ -383,5 +464,13 @@ watcher:SetScript("OnEvent", function(_, event, arg1, arg2, arg3)
             local ok, err = pcall(CL.OnVotesChanged, rollID)
             if not ok then CL.Print("LOOT_HISTORY_UPDATE_DROP: " .. tostring(err)) end
         end
+        -- the result of a finished roll lands in the history just after the "complete" event
+        local ok, err = pcall(CL.Results.OnDropUpdate, arg2)
+        if not ok then CL.Print("LOOT_HISTORY_UPDATE_DROP (result): " .. tostring(err)) end
+    elseif event == "LOOT_ROLLS_COMPLETE" then
+        -- (lootListKey): everybody has answered or the time is up, the winner is known
+        CL.Debug("LOOT_ROLLS_COMPLETE key=%s", tostring(Plain(arg1)))
+        local ok, err = pcall(CL.Results.OnComplete, arg1)
+        if not ok then CL.Print("LOOT_ROLLS_COMPLETE: " .. tostring(err)) end
     end
 end)

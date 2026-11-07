@@ -144,12 +144,61 @@ function Sim.ActiveCount()
     return n
 end
 
+-- Classes for the simulated players, so their names show in colour.
+local CLASS_POOL = { "WARRIOR", "DRUID", "HUNTER", "SHAMAN", "MAGE", "PRIEST", "ROGUE", "PALADIN", "WARLOCK" }
+
+local function PlayerClass(name)
+    for i, n in ipairs(PLAYERS) do
+        if n == name then return CLASS_POOL[(i - 1) % #CLASS_POOL + 1] end
+    end
+    return CLASS_POOL[1]
+end
+
+-- How the roll turned out, in the shape CL.API.GetResult documents: everyone who
+-- chose Need or Greed rolls 1-100, Need beats Greed, the best roll wins. Players
+-- who never answered count as passes; you, if you never answered, are not rolling.
+local function BuildResult(s)
+    local entries = {}
+    local function add(name, class, choice, isSelf)
+        if choice == CL.ROLL.NEED or choice == CL.ROLL.GREED then
+            entries[#entries + 1] = { name = name, class = class, type = choice, value = math.random(100), isSelf = isSelf }
+        end
+    end
+    for _, name in ipairs(s.order) do add(name, PlayerClass(name), s.choices[name], false) end
+    add("You", nil, s.mine, true)
+
+    table.sort(entries, function(a, b)
+        if a.type ~= b.type then return a.type < b.type end  -- Need (1) before Greed (2)
+        return a.value > b.value
+    end)
+
+    local res = {
+        key = s.id, link = s.link, name = s.info.name, quality = s.info.quality, texture = s.info.texture,
+        rolls = entries, passes = 0, allPassed = #entries == 0,
+        me = { type = s.mine, value = nil },
+    }
+    for _, name in ipairs(s.order) do
+        if s.choices[name] == CL.ROLL.PASS then res.passes = res.passes + 1 end
+    end
+    if s.mine == CL.ROLL.PASS then res.passes = res.passes + 1 end
+    for _, e in ipairs(entries) do
+        if e.isSelf then res.me.value = e.value end
+    end
+    if entries[1] then
+        entries[1].isWinner = true
+        res.winner = entries[1]
+    end
+    return res
+end
+
 -- The roll ends: the client tells the UI to drop the frame, like a real
--- CANCEL_LOOT_ROLL.
+-- CANCEL_LOOT_ROLL, and the result popup shows how it went.
 function Sim.Finish(rollID)
-    if not rolls[rollID] then return end
+    local s = rolls[rollID]
+    if not s then return end
     rolls[rollID] = nil
     CL.OnRollGone(rollID)
+    if CL.Results then CL.Results.Show(BuildResult(s), true) end
 end
 
 -- Another player chooses (rollType forced for tests, random otherwise), and the

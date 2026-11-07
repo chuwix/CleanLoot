@@ -16,7 +16,8 @@ Clean loot roll frames for **WoW Forever** (the official Blizzard beta client). 
 - **After a `/reload`**, rolls still running are brought back
 - **Blizzard's own roll frames are hidden** (and stop catching clicks). the options bring them back
 - **Less chat spam**: the per-roll lines (who selected what, roll values) are filtered out; **who won what** and your loot stay visible. Blizzard's *Loot Rolls* history window keeps everything
-- **Loot toast options** (off by default): hide the "You won" banner, shrink it, or move the alert banners (*Loot toasts* column of the options)
+- **Winner popup**: when a roll ends, a small card shows who won and with which roll, and always your own roll (rolled, passed or did not answer). Hover it for every roll of the drop; right-click closes it. It stands in for the roll lines the chat filter hides
+- **Loot toast options** (off by default): hide the "You won" banner (all of them, or only for the items the winner popup reports), shrink it, or move the alert banners (*Loot toasts* column of the options)
 - **Minimap button**: left-click the loot history, right-click the options
 - Options under *Game Menu → Options → AddOns → CleanLoot* (or just `/cll`): stacking direction, scale, position lock, Blizzard's frames, chat filter, loot toasts, minimap button
 
@@ -40,7 +41,7 @@ Clean loot roll frames for **WoW Forever** (the official Blizzard beta client). 
 ## Notes
 
 - Forever is still in beta and its API changes: if something breaks after a client update, please report it with the build number.
-- The roll frames are **locked** by default, so a real roll never moves by accident. To place them: run `/cll sim` (they are always movable while simulating), then left-click and drag any frame. Or untick *Lock the frames' position* in the options. *Reset position* is there too.
+- The roll frames are **locked** by default, so a real roll never moves by accident. To place them: run `/cll sim` (they are always movable while simulating), then left-click and drag any frame. Or untick *Lock the frames' and popup's position* in the options. *Reset position* is there too. The winner popup has its own *Move* button in the options: it shows a sample card to drag (right-click it when done), whatever the lock says.
 - *Moving* the toasts moves the whole alert-banner stack (achievements and the like too): Blizzard anchors them all to one point. *Hide* and *size* only touch loot toasts. If another addon already positions the alert banners, leave the toast position alone.
 - Blizzard's roll frames are only ever hidden by alpha and mouse state: their managed container is never moved or resized, so nothing is tainted.
 

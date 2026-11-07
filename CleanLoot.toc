@@ -2,7 +2,7 @@
 ## Title: CleanLoot
 ## Notes: Clean loot roll frames for WoW Forever (Need/Greed/Pass): live vote counters, who has not rolled yet, queued rolls on big drops, and a minimap button. Standalone.
 ## Author: Hazas
-## Version: 1.1.0
+## Version: 1.2.0
 ## IconTexture: Interface\AddOns\CleanLoot\Media\Logo
 ## X-Website: https://github.com/hazaswow/CleanLoot
 ## X-Curse-Project-ID: 1760635
@@ -17,6 +17,7 @@ Core.lua
 Native.lua
 Toasts.lua
 RollFrames.lua
+Results.lua
 Sim.lua
 Options.lua
 Minimap.lua

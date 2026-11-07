@@ -80,6 +80,8 @@ local function NewFrame(frameType, name, parent)
     set("GetEffectiveScale", function(self) return scale end)  -- parents are not scaled in the harness
     local width, height = 0, 0
     set("SetSize", function(self, w, h) width, height = w, h end)
+    set("SetWidth", function(self, w) width = w end)
+    set("SetHeight", function(self, h) height = h end)
     set("GetWidth", function(self) return width end)
     set("GetHeight", function(self) return height end)
     -- no layout engine: a scenario that needs screen coordinates rawsets these
@@ -258,7 +260,7 @@ LibStub = { GetLibrary = function(self, name) return WOW.libs[name] end }
 Enum = { EncounterLootDropRollState = { NeedMainSpec = 0, NeedOffSpec = 1, Transmog = 2, Greed = 3, NoRoll = 4, Pass = 5 } }
 RAID_CLASS_COLORS = {
     DRUID = { r = 1, g = 0.49, b = 0.04 }, WARRIOR = { r = 0.78, g = 0.61, b = 0.43 },
-    HUNTER = { r = 0.67, g = 0.83, b = 0.45 },
+    HUNTER = { r = 0.67, g = 0.83, b = 0.45 }, SHAMAN = { r = 0, g = 0.44, b = 0.87 },
 }
 
 -- hooksecurefunc: run `fn` after the original global function, like WoW does.
