@@ -65,6 +65,7 @@ local function Plain(v)
     if issecretvalue and issecretvalue(v) then return nil end
     return v
 end
+CL.Plain = Plain
 
 -------------------------------------------------
 -- Data access (real client or simulator)
@@ -349,7 +350,7 @@ watcher:SetScript("OnEvent", function(_, event, arg1, arg2, arg3)
         end
         CL.db = CleanLootDB
         -- each part on its own: one failing must not take the others down
-        for _, part in ipairs({ "Native", "Options", "MinimapButton", "ChatFilter" }) do
+        for _, part in ipairs({ "Native", "Toasts", "Options", "MinimapButton", "ChatFilter" }) do
             local module = CL[part]
             local setup = module and (module.Install or module.Setup)
             if setup then

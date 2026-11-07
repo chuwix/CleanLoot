@@ -483,7 +483,7 @@ function RF.QueuedCount()
     return #queue
 end
 
--- The stack only moves when it is unlocked (options, /cll unlock), or while
+-- The stack only moves when it is unlocked (options), or while
 -- simulated rolls are on screen -- the natural moment to place it. A real roll
 -- frame never moves by accident.
 function RF.CanMove()

@@ -10,7 +10,7 @@
 -- positioned against it), so each gets its own. Mouse: an invisible frame still
 -- catches clicks, so every frame in each roll frame's tree stops accepting the
 -- mouse. The original mouse state of each frame is remembered and put back on
--- /cll native show. Re-applied after Blizzard's own updates, on the next frame
+-- the option is turned off. Re-applied after Blizzard's own updates, on the next frame
 -- and never from inside them.
 
 local _, CL = ...

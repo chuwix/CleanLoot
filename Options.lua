@@ -132,6 +132,18 @@ local function Build()
         CL.RollFrames.ResetPosition()
     end)
 
+    -- second column, beside the short rows of the first
+    Text(panel, "Loot toasts", 330, -56, "GameFontNormalLarge")
+    Text(panel, "The \"You won\" banner Blizzard shows.", 330, -84, "GameFontDisableSmall")
+    widgets.toastHide = Checkbox(panel, "Hide it", 330, -102,
+        function() return CL.db.hideToasts end,
+        function(v) CL.Toasts.SetHidden(v) end)
+    widgets.toastScale = Slider(panel, "Size", 330, -140, 0.5, 1.5, 0.05, "%.2f",
+        function() return CL.db.toastScale or 1 end,
+        function(v) CL.Toasts.SetScale(v) end)
+    widgets.toastMove = PushButton(panel, "Move", 334, -190, 80, function() CL.Toasts.ToggleMover() end)
+    widgets.toastReset = PushButton(panel, "Reset", 420, -190, 80, function() CL.Toasts.ResetPosition() end)
+
     Text(panel, "Minimap", 16, -354, "GameFontNormalLarge")
     widgets.minimap = Checkbox(panel, "Hide the minimap button", 16, -378,
         function() return CL.db.minimap and CL.db.minimap.hide end,

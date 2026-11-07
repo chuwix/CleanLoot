@@ -59,13 +59,7 @@ WOW.Advance(31)
 check(RF.ActiveCount() == 0, "unanswered roll ends at timeout (got " .. RF.ActiveCount() .. ")")
 check(CL.Sim.ActiveCount() == 0, "no simulated rolls left")
 
--- 6. Resolution rules: Need beats Greed, highest roll wins, Pass never wins
 local N, G, P = CL.ROLL.NEED, CL.ROLL.GREED, CL.ROLL.PASS
-local w = CL.Sim.Resolve({ { name = "a", rollType = G, value = 99 }, { name = "b", rollType = N, value = 1 } })
-check(w and w.name == "b", "Need beats a higher Greed")
-w = CL.Sim.Resolve({ { name = "a", rollType = G, value = 40 }, { name = "b", rollType = G, value = 70 } })
-check(w and w.name == "b", "highest Greed wins")
-check(CL.Sim.Resolve({ { name = "a", rollType = P, value = 100 } }) == nil, "all Pass -> no winner")
 
 -- 7. Real-event path: START_LOOT_ROLL / CANCEL_LOOT_ROLL through the real API
 function GetLootRollItemInfo(rollID)
@@ -165,11 +159,8 @@ end
 check(legendary and RF.GetFrame(legendary).name:GetText():find("Legendary", 1, true) ~= nil, "legendary synthetic exists")
 WOW.chat = {}
 click(ids[1], CL.ROLL.GREED)
-check(#WOW.chat == 0, "the simulator is silent in chat by default (the game prints its own)")
-CL.Sim.chat = true
+check(#WOW.chat == 0, "the simulator is silent in chat (the game prints its own lines)")
 click(legendary, CL.ROLL.GREED)
-check(WOW.chat[#WOW.chat] and WOW.chat[#WOW.chat]:find("Sim Legendary Hammer", 1, true) ~= nil, "with chat on, it names the synthetic item")
-CL.Sim.chat = false
 CL.Sim.Clear()
 check(#CL.Sim.Start(2) == 2 and RF.ActiveCount() == 2, "Start(2) works with no item data at all")
 CL.Sim.Clear()
@@ -300,7 +291,7 @@ check(pooled.LootButtonContainer.NeedButton.__clickEnabled == false, "frames onl
 
 CL.Native.SetHidden(false)
 WOW.Advance(0.01)
-check(GroupLootContainer:GetAlpha() == 1 and nbox.NeedButton.__clickEnabled == true, "/cll native show restores everything")
+check(GroupLootContainer:GetAlpha() == 1 and nbox.NeedButton.__clickEnabled == true, "showing the natives restores everything")
 check(GroupLootFrame1:GetAlpha() == 1 and pooled:GetAlpha() == 1, "...including each roll frame's alpha")
 GroupLootContainer:SetAlpha(0.5)  -- another addon's business now
 GroupLootContainer_Update()
@@ -308,7 +299,7 @@ WOW.Advance(0.01)
 check(GroupLootContainer:GetAlpha() == 0.5, "frames are left alone while we are not hiding them")
 CL.Native.SetHidden(true)
 WOW.Advance(0.01)
-check(GroupLootContainer:GetAlpha() == 0, "/cll native hide hides them again")
+check(GroupLootContainer:GetAlpha() == 0, "hiding the natives hides them again")
 
 -- 15b. Every frame in a native roll frame's tree stops catching the mouse (an
 --      invisible frame that still takes clicks blocks the world behind it), and
@@ -331,7 +322,7 @@ check(catcher.__clickEnabled == false, "a mouse state Blizzard re-enables is swi
 CL.Native.SetHidden(false)
 WOW.Advance(0.01)
 check(catcher.__clickEnabled == true and overlay.__clickEnabled == true and GroupLootContainer.__clickEnabled == true,
-    "/cll native show: every frame gets its mouse back")
+    "showing the natives: every frame gets its mouse back")
 check(quiet.__clickEnabled == false, "...but a frame that never had the mouse on stays off")
 CL.Native.SetHidden(true)
 WOW.Advance(0.01)
@@ -725,15 +716,170 @@ local f1 = CleanLootRollFrame1
 f1:GetScript("OnDragStart")(f1)
 check(not f1.dragging, "a drag does nothing while locked")
 f1:GetScript("OnDragStop")(f1)
-SlashCmdList["CLEANLOOT"]("unlock")
-check(CL.db.locked == false and RF.CanMove() == true, "/cll unlock allows moving")
+local lockBox = CL.Options.widgets.lock
+lockBox:SetChecked(false)
+lockBox.__scripts.OnClick(lockBox)
+check(CL.db.locked == false and RF.CanMove() == true, "unticking the lock option allows moving")
 f1:GetScript("OnDragStart")(f1)
 check(f1.dragging == true, "a drag starts once unlocked")
 f1:GetScript("OnDragStop")(f1)
 check(not f1.dragging and CL.db.point ~= nil, "...and the position is saved on drop")
-SlashCmdList["CLEANLOOT"]("lock")
-check(CL.db.locked == true and RF.CanMove() == false, "/cll lock locks again")
+lockBox:SetChecked(true)
+lockBox.__scripts.OnClick(lockBox)
+check(CL.db.locked == true and RF.CanMove() == false, "ticking it locks again")
 check(CL.Options.widgets.lock ~= nil, "the options panel has the lock checkbox")
+
+-- 28. Loot toasts: untouched by default; hide / scale / move on demand
+local function NewToast(parent, withItem)
+    local t = CreateFrame("Frame", nil, parent or AlertFrame)
+    if withItem ~= false then
+        rawset(t, "ItemName", CreateFrame("FontString", nil, t))
+        rawset(t, "Icon", CreateFrame("Texture", nil, t))
+    end
+    return t
+end
+local function Banner(withItem)
+    local t = NewToast(AlertFrame, withItem)
+    AlertFrame:AddAlertFrame(t)
+    return t
+end
+local T = CL.Toasts
+check(CL.db.hideToasts == false or CL.db.hideToasts == nil, "toasts are not hidden by default")
+check(CL.db.toastScale == nil and CL.db.toastPos == nil, "...nor resized or moved by default")
+local t0 = Banner()
+check(t0:IsShown() and t0:GetScale() == 1, "a loot toast is left alone by default")
+local p0 = { AlertFrame:GetPoint() }
+check(p0[1] == "BOTTOM" and p0[5] == 128, "...and so is the anchor")
+
+T.SetScale(0.7)
+local t1, ach = Banner(), Banner(false)
+check(t1:GetScale() == 0.7, "scale applies to a loot toast as it is shown")
+check(ach:GetScale() == 1 and ach:IsShown(), "...but not to other banners (no item name)")
+T.SetScale(9)
+check(CL.db.toastScale == 1.5, "scale is clamped to 1.5")
+T.SetScale(0.7)
+
+CL.db.toastScale = nil
+T.SetHidden(true)
+local t2, ach2 = Banner(), Banner(false)
+check(not t2:IsShown(), "hidden: a loot toast does not stay on screen")
+check(ach2:IsShown(), "...while other banners still do")
+t2:Show()
+t2.__scripts.OnShow(t2)
+check(not t2:IsShown(), "hidden: a toast shown by other means is hidden again (OnShow)")
+
+-- a toast that does not go through AddAlertFrame: found by the sweep after the loot event
+local stray = NewToast(UIParent)
+stray:SetFrameStrata("FULLSCREEN_DIALOG")
+stray:Show()
+WOW.FireEvent("SHOW_LOOT_TOAST")
+WOW.Advance(1)
+check(not stray:IsShown(), "hidden: a toast outside AlertFrame is found and hidden after SHOW_LOOT_TOAST")
+local other = NewToast(UIParent)   -- same shape but not a dialog-strata frame: not ours to touch
+other:Show()
+WOW.FireEvent("LOOT_ITEM_ROLL_WON")
+WOW.Advance(1)
+check(other:IsShown(), "...a frame at another strata is left alone")
+T.SetHidden(false)
+local t3 = Banner()
+check(t3:IsShown(), "shown again: toasts come back")
+
+-- move: the box stands where the first toast shows
+check(CL.db.toastGeom == nil, "no toast measured yet (none was anchored to AlertFrame)")
+T.ToggleMover(true)
+local mover = CleanLootToastMover
+check(mover and mover:IsShown(), "the mover box opens")
+local mp = { mover:GetPoint() }
+check(mp[1] == "BOTTOM" and mp[2] == AlertFrame and mp[3] == "TOP" and mp[5] == 0,
+    "...standing on AlertFrame's anchor while no toast has been measured")
+T.ToggleMover(false)
+
+local real = NewToast(AlertFrame)
+real:SetSize(250, 80)
+real:SetPoint("BOTTOM", AlertFrame, "TOP", 0, 14)
+AlertFrame:AddAlertFrame(real)
+local g = CL.db.toastGeom
+check(g and g.w == 250 and g.h == 80 and g.point == "BOTTOM" and g.relPoint == "TOP" and g.y == 14,
+    "the first toast hanging from AlertFrame is measured")
+local second = NewToast(AlertFrame)
+second:SetSize(250, 80)
+second:SetPoint("BOTTOM", real, "TOP", 0, 6)
+AlertFrame:AddAlertFrame(second)
+check(CL.db.toastGeom.y == 14, "...a toast hanging from another toast says nothing")
+
+T.ToggleMover(true)
+mp = { mover:GetPoint() }
+check(mover:GetWidth() == 250 and mover:GetHeight() == 80, "the box takes the toast's size")
+check(mp[1] == "BOTTOM" and mp[2] == AlertFrame and mp[3] == "TOP" and mp[5] == 14,
+    "...and its anchor: the box covers the toast")
+T.SetScale(0.5)
+check(mover:GetScale() == 0.5, "the Size slider resizes the open box too")
+
+-- drag: 60 right and 30 up on the screen, in the box's own (half-size) units
+local boxL, boxB = 500, 300
+rawset(mover, "GetLeft", function() return boxL end)
+rawset(mover, "GetBottom", function() return boxB end)
+mover.__scripts.OnDragStart(mover)
+mp = { mover:GetPoint() }
+check(mp[1] == "BOTTOMLEFT" and mp[2] == UIParent and mp[4] == 500 and mp[5] == 300,
+    "a drag sets the box on a spot of its own")
+boxL, boxB = 560, 330
+mover.__scripts.OnDragStop(mover)
+local ap = { AlertFrame:GetPoint() }
+check(ap[1] == "BOTTOM" and ap[2] == UIParent and ap[3] == "BOTTOM" and ap[4] == 30 and ap[5] == 143,
+    "dropping the box moves the toast anchor by the same screen distance")
+check(CL.db.toastPos and CL.db.toastPos[3] == 30, "...and saves the spot")
+mp = { mover:GetPoint() }
+check(mp[2] == AlertFrame, "...then the box hangs from the anchor again")
+AlertFrame:ClearAllPoints()
+AlertFrame:SetPoint("TOP", UIParent, "TOP", 0, 0)
+AlertFrame:UpdateAnchors()
+ap = { AlertFrame:GetPoint() }
+check(ap[1] == "BOTTOM" and ap[4] == 30, "if Blizzard re-anchors it, our spot is put back")
+CL.db.toastScale = nil
+mover.__scripts.OnMouseUp(mover, "RightButton")
+check(not mover:IsShown(), "right-click closes the box")
+T.ResetPosition()
+ap = { AlertFrame:GetPoint() }
+check(CL.db.toastPos == nil and ap[1] == "BOTTOM" and ap[5] == 128, "reset puts Blizzard's anchor back")
+
+-- slash command and options
+local tw = CL.Options.widgets
+tw.toastHide:SetChecked(true)
+tw.toastHide.__scripts.OnClick(tw.toastHide)
+check(CL.db.hideToasts == true, "the Hide option hides the toasts")
+tw.toastHide:SetChecked(false)
+tw.toastHide.__scripts.OnClick(tw.toastHide)
+check(CL.db.hideToasts == false, "...and unticking shows them again")
+tw.toastScale.__scripts.OnValueChanged(tw.toastScale, 0.8)
+check(CL.db.toastScale == 0.8, "the Size slider sets the toast scale")
+tw.toastMove.__scripts.OnClick(tw.toastMove)
+check(CleanLootToastMover:IsShown(), "the Move button opens the mover")
+tw.toastReset.__scripts.OnClick(tw.toastReset)
+check(CL.db.toastPos == nil, "the Reset button clears the saved spot")
+CleanLootToastMover:Hide()
+for _, w in ipairs({ "toastHide", "toastScale", "toastMove", "toastReset" }) do
+    check(CL.Options.widgets[w] ~= nil, "the options panel has " .. w)
+end
+CL.db.toastScale = nil
+
+-- 29. The slash command: /cll opens the options, the rest is testing tools
+WOW.openedCategory = nil
+SlashCmdList["CLEANLOOT"]("")
+check(WOW.openedCategory ~= nil, "/cll opens the options panel")
+WOW.openedCategory = nil
+SlashCmdList["CLEANLOOT"]("options")
+check(WOW.openedCategory ~= nil, "/cll options opens it too")
+WOW.chat = {}
+SlashCmdList["CLEANLOOT"]("help")
+local help = table.concat(WOW.chat, "\n")
+check(help:find("sim", 1, true) and help:find("debug", 1, true) and help:find("restore", 1, true),
+    "/cll help lists the sim, debug and restore commands")
+check(not help:find("grow", 1, true) and not help:find("toasts", 1, true) and not help:find("native", 1, true),
+    "...and none of the settings that live in the options")
+local before = CL.db.growDirection
+SlashCmdList["CLEANLOOT"]("grow up")
+check(CL.db.growDirection == before, "the old settings commands no longer change anything")
 
 io.write(("%d checks, %d failed\n"):format(checks, failures))
 os.exit(failures == 0 and 0 or 1)

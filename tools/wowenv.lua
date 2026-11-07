@@ -72,8 +72,19 @@ local function NewFrame(frameType, name, parent)
     set("GetAlpha", function(self) return self.__alpha end)
     set("SetMouseClickEnabled", function(self, v) rawset(self, "__clickEnabled", v) end)
     set("SetMouseMotionEnabled", function(self, v) rawset(self, "__motionEnabled", v) end)
+    local strata = "MEDIUM"
+    set("SetFrameStrata", function(self, s) strata = s end)
+    set("GetFrameStrata", function(self) return strata end)
     set("SetScale", function(self, s) scale = s end)
     set("GetScale", function(self) return scale end)
+    set("GetEffectiveScale", function(self) return scale end)  -- parents are not scaled in the harness
+    local width, height = 0, 0
+    set("SetSize", function(self, w, h) width, height = w, h end)
+    set("GetWidth", function(self) return width end)
+    set("GetHeight", function(self) return height end)
+    -- no layout engine: a scenario that needs screen coordinates rawsets these
+    set("GetLeft", function(self) return nil end)
+    set("GetBottom", function(self) return nil end)
     set("SetText", function(self, t) text = t end)
     set("GetText", function(self) return text end)
     set("GetName", function(self) return name end)
@@ -251,9 +262,12 @@ RAID_CLASS_COLORS = {
 }
 
 -- hooksecurefunc: run `fn` after the original global function, like WoW does.
-function hooksecurefunc(name, fn)
-    local orig = _G[name]
-    _G[name] = function(...)
+function hooksecurefunc(target, name, fn)
+    -- hooksecurefunc("Global", fn) or hooksecurefunc(table, "Method", fn)
+    local holder = _G
+    if type(target) == "table" then holder = target else fn, name = name, target end
+    local orig = holder[name]
+    holder[name] = function(...)
         local result = orig(...)
         fn(...)
         return result
@@ -276,6 +290,13 @@ for i = 1, 4 do
 end
 function GroupLootContainer_AddFrame() end
 function GroupLootContainer_Update() end
+
+-- Blizzard's alert banners: AlertFrame is the anchor they stack from, and every
+-- banner goes through AddAlertFrame (which shows it).
+AlertFrame = NewFrame("Frame", "AlertFrame", UIParent)
+AlertFrame:SetPoint("BOTTOM", UIParent, "BOTTOM", 0, 128)
+AlertFrame.alertFrameSubSystems = {}
+function AlertFrame:AddAlertFrame(frame) frame:Show() end
 
 -- What the "player" owns, for the simulator's item pool.
 WOW.equipped = {}  -- slot -> itemID

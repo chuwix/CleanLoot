@@ -14,10 +14,11 @@ Clean loot roll frames for **WoW Forever** (the official Blizzard beta client). 
 - **"Hasn't rolled yet"**: a small clock with the number of players still deciding; hover for who
 - **Big drops**: more rolls than frames? The rest wait in a queue and appear as you answer, with their timers still running. No roll is lost
 - **After a `/reload`**, rolls still running are brought back
-- **Blizzard's own roll frames are hidden** (and stop catching clicks). `/cll native show` brings them back
+- **Blizzard's own roll frames are hidden** (and stop catching clicks). the options bring them back
 - **Less chat spam**: the per-roll lines (who selected what, roll values) are filtered out; **who won what** and your loot stay visible. Blizzard's *Loot Rolls* history window keeps everything
+- **Loot toast options** (off by default): hide the "You won" banner, shrink it, or move the alert banners (*Loot toasts* column of the options)
 - **Minimap button**: left-click the loot history, right-click the options
-- Options under *Game Menu → Options → AddOns → CleanLoot*: stacking direction, scale, hide/show Blizzard's frames, chat filter, minimap button
+- Options under *Game Menu → Options → AddOns → CleanLoot* (or just `/cll`): stacking direction, scale, position lock, Blizzard's frames, chat filter, loot toasts, minimap button
 
 ## Installation
 
@@ -28,23 +29,19 @@ Clean loot roll frames for **WoW Forever** (the official Blizzard beta client). 
 
 | Command | Effect |
 |---|---|
-| `/cll options` | Open the options panel |
-| `/cll grow up\|down` | Stacking direction |
-| `/cll scale <0.8-1.5>` | Frame scale |
-| `/cll lock` / `/cll unlock` | Lock or unlock the frames' position (always movable during `/cll sim`) |
-| `/cll native show\|hide` | Blizzard's own roll frames |
+| `/cll` | Open the options panel (every setting is there) |
 | `/cll restore` | Bring back rolls still running (automatic at login and `/reload`) |
 | `/cll sim [n]` | Simulate *n* loot rolls (1-8) with a simulated group, to try the frames without a real drop |
 | `/cll sim colors` | One simulated drop of every item colour |
 | `/cll sim group <n>` | Size of the simulated group (1-39 other players) |
-| `/cll sim chat` | Toggle the simulator's chat lines |
 | `/cll sim clear` | Remove the simulated rolls |
 | `/cll debug [on\|off]` | Trace every roll in chat (why one did or did not show) |
 
 ## Notes
 
 - Forever is still in beta and its API changes: if something breaks after a client update, please report it with the build number.
-- The roll frames are **locked** by default, so a real roll never moves by accident. To place them: run `/cll sim` (they are always movable while simulating), then left-click and drag any frame. Or untick *Lock the frames' position* in the options, or use `/cll unlock`. *Reset position* is in the options.
+- The roll frames are **locked** by default, so a real roll never moves by accident. To place them: run `/cll sim` (they are always movable while simulating), then left-click and drag any frame. Or untick *Lock the frames' position* in the options. *Reset position* is there too.
+- *Moving* the toasts moves the whole alert-banner stack (achievements and the like too): Blizzard anchors them all to one point. *Hide* and *size* only touch loot toasts. If another addon already positions the alert banners, leave the toast position alone.
 - Blizzard's roll frames are only ever hidden by alpha and mouse state: their managed container is never moved or resized, so nothing is tainted.
 
 ## Reporting bugs

@@ -58,13 +58,6 @@ local SYNTHETIC = {
     [5] = { name = "Sim Legendary Hammer", icon = "Interface\\Icons\\INV_Hammer_Unique_Sulfuras" },
 }
 
--- The game already prints roll choices and winners in chat itself, so the
--- simulator stays quiet unless asked (/cll sim chat).
-Sim.chat = false
-local function Say(msg)
-    if Sim.chat then CL.Print(msg) end
-end
-
 local function After(delay, fn)
     if C_Timer and C_Timer.After then C_Timer.After(delay, fn) else fn() end
 end
@@ -134,25 +127,6 @@ local function PickQuality()
     return QUALITY_TABLE[1][1]
 end
 
--- Highest roll wins; any Need beats any Greed; Pass never wins. Returns the
--- winning entry or nil when everyone passed.
-function Sim.Resolve(entries)
-    local NEED, GREED = CL.ROLL.NEED, CL.ROLL.GREED
-    local best
-    for _, e in ipairs(entries) do
-        if e.rollType == NEED or e.rollType == GREED then
-            if not best then
-                best = e
-            else
-                local tierE = (e.rollType == NEED) and 1 or 2
-                local tierB = (best.rollType == NEED) and 1 or 2
-                if tierE < tierB or (tierE == tierB and e.value > best.value) then best = e end
-            end
-        end
-    end
-    return best
-end
-
 local function RandomChoice()
     local r = math.random()
     if r < 0.35 then return CL.ROLL.NEED end
@@ -170,29 +144,11 @@ function Sim.ActiveCount()
     return n
 end
 
--- The roll ends: other players have chosen, someone wins (or nobody), and the
--- client tells the UI to drop the frame like a real CANCEL_LOOT_ROLL.
+-- The roll ends: the client tells the UI to drop the frame, like a real
+-- CANCEL_LOOT_ROLL.
 function Sim.Finish(rollID)
-    local s = rolls[rollID]
-    if not s then return end
+    if not rolls[rollID] then return end
     rolls[rollID] = nil
-
-    local entries = {}
-    local mine = s.mine
-    if mine and mine ~= CL.ROLL.PASS then
-        entries[#entries + 1] = { name = "You", rollType = mine, value = math.random(1, 100) }
-    end
-    for _, name in ipairs(PLAYERS) do
-        -- whoever had not chosen by the end decides at the last moment
-        entries[#entries + 1] = { name = name, rollType = s.choices[name] or RandomChoice(), value = math.random(1, 100) }
-    end
-
-    local winner = Sim.Resolve(entries)
-    if winner then
-        Say(("sim: %s won %s (%s %d)"):format(winner.name, s.display, CL.ROLL_NAME[winner.rollType], winner.value))
-    else
-        Say(("sim: everyone passed on %s"):format(s.display))
-    end
     CL.OnRollGone(rollID)
 end
 
@@ -238,7 +194,6 @@ function Sim.Roll(rollID, rollType)
     local s = rolls[rollID]
     if not s or s.mine ~= nil then return false end
     s.mine = rollType
-    Say(("sim: you chose %s on %s"):format(CL.ROLL_NAME[rollType] or "?", s.display))
     After(1 + math.random() * 2, function() Sim.Finish(rollID) end)
     return true
 end

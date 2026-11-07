@@ -1,7 +1,11 @@
 # Changelog
 
+## 1.1.0
+- Loot toast options: hide the "You won" banner, change its size, or move the alert banners (*Loot toasts* column in the options). The move box has the size and place of a real toast. Off by default: nothing changes until you use them.
+- A simpler `/cll`: it now opens the options panel, where every setting lives. The commands that duplicated an option are gone (`grow`, `scale`, `lock`, `unlock`, `native`), and so is `sim chat`. `/cll sim`, `/cll restore` and `/cll debug` stay; `/cll help` lists them.
+
 ## 1.0.1
-- The roll frames are now **locked** by default, so a real roll never moves by accident. Unlock them with the new option, or `/cll unlock` (`/cll lock` to lock again); they are always movable while `/cll sim` rolls are on screen.
+- The roll frames are now **locked** by default, so a real roll never moves by accident. Unlock them with the new option; they are always movable while `/cll sim` rolls are on screen.
 - New two-frame icon, used in the addon list and on the minimap button.
 - Internal cleanup.
 
