@@ -94,6 +94,22 @@ local function NewFrame(frameType, name, parent)
     set("GetObjectType", function(self) return frameType or "Frame" end)
     set("CreateFontString", function(self) return NewFrame("FontString", nil, self) end)
     set("CreateTexture", function(self) return NewFrame("Texture", nil, self) end)
+    if frameType == "FontString" then
+        local font, fontSize, fontFlags = "test-font", 10, ""
+        set("GetFont", function() return font, fontSize, fontFlags end)
+        set("SetFont", function(self, f, size, flags) font, fontSize, fontFlags = f, size, flags end)
+        set("GetStringWidth", function() return #tostring(text) * fontSize * 0.6 end)
+    end
+    if frameType == "GameTooltip" then
+        rawset(f, "lines", {})
+        set("SetOwner", function(self, owner) self.owner = owner self.lines = {} end)
+        set("IsOwned", function(self, owner) return self.owner == owner end)
+        set("ClearLines", function(self) self.lines = {} end)
+        set("AddLine", function(self, t) self.lines[#self.lines + 1] = tostring(t) end)
+        set("AddDoubleLine", function(self, l, r) self.lines[#self.lines + 1] = tostring(l) .. " | " .. tostring(r) end)
+        set("SetText", function(self, t) self.lines = { tostring(t) } end)
+        set("SetHyperlink", function(self, link) self.link = link self.lines = { tostring(link) } end)
+    end
     rawset(f, "__children", {})
     set("GetChildren", function(self) return (table.unpack or unpack)(self.__children) end)
     set("IsMouseClickEnabled", function(self) return self.__clickEnabled end)

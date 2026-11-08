@@ -170,12 +170,24 @@ local function Build()
         function() return CL.db.minimap and CL.db.minimap.hide end,
         function(v) CL.MinimapButton.SetHidden(v) end)
 
-    Text(panel, "Testing", 16, -428, "GameFontNormalLarge")
-    Text(panel, "Fake loot rolls with a simulated group, to try the frames without a real drop.", 16, -454,
+    Text(panel, "Keyboard rolls", 16, -414, "GameFontNormalLarge")
+    widgets.keyboard = Checkbox(panel, "Enable keyboard rolls", 16, -440,
+        function() return CL.db.keyboardEnabled end,
+        function(v) CL.Keyboard.SetEnabled(v) end)
+    Text(panel, "Inspection side", 16, -468)
+    widgets.inspectRight = Checkbox(panel, "Right", 128, -464,
+        function() return CL.db.keyboardInspectSide ~= "LEFT" end,
+        function() CL.Keyboard.SetSide("RIGHT") end)
+    widgets.inspectLeft = Checkbox(panel, "Left", 230, -464,
+        function() return CL.db.keyboardInspectSide == "LEFT" end,
+        function() CL.Keyboard.SetSide("LEFT") end)
+
+    Text(panel, "Testing", 16, -512, "GameFontNormalLarge")
+    Text(panel, "Fake loot rolls with a simulated group, to try the frames without a real drop.", 16, -538,
         "GameFontDisableSmall")
-    widgets.sim = PushButton(panel, "Simulate 3 drops", 20, -476, 150, function() CL.Sim.Start(3) end)
-    widgets.simColors = PushButton(panel, "One of each colour", 180, -476, 150, function() CL.Sim.Colors() end)
-    widgets.simClear = PushButton(panel, "Clear", 340, -476, 80, function() CL.Sim.Clear() end)
+    widgets.sim = PushButton(panel, "Simulate 3 drops", 20, -560, 150, function() CL.Sim.Start(3) end)
+    widgets.simColors = PushButton(panel, "One of each colour", 180, -560, 150, function() CL.Sim.Colors() end)
+    widgets.simClear = PushButton(panel, "Clear", 340, -560, 80, function() CL.Sim.Clear() end)
 
     -- values may have changed through a slash command since the panel was built
     panel:SetScript("OnShow", Options.Refresh)

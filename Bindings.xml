@@ -1,0 +1,8 @@
+<Bindings>
+    <Binding name="CLEANLOOT_NEXT" header="CLEANLOOT">CleanLootKeyboardAction("next")</Binding>
+    <Binding name="CLEANLOOT_PREVIOUS">CleanLootKeyboardAction("previous")</Binding>
+    <Binding name="CLEANLOOT_INSPECT">CleanLootKeyboardAction("inspect")</Binding>
+    <Binding name="CLEANLOOT_NEED">CleanLootKeyboardAction("need")</Binding>
+    <Binding name="CLEANLOOT_GREED">CleanLootKeyboardAction("greed")</Binding>
+    <Binding name="CLEANLOOT_PASS">CleanLootKeyboardAction("pass")</Binding>
+</Bindings>

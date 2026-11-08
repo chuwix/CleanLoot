@@ -149,6 +149,13 @@ local function CreateRollButton(f, rollType)
     label:SetText(CL.ROLL_NAME[rollType])
     b.label = label
 
+    local binding = b:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    binding:SetPoint("BOTTOM", b, "BOTTOM", -6, 1)
+    binding:SetJustifyH("CENTER")
+    binding:SetWordWrap(false)
+    binding:Hide()
+    b.binding = binding
+
     -- how many players chose this type (empty at 0)
     local count = b:CreateFontString(nil, "OVERLAY", "NumberFontNormalSmall")
     count:SetPoint("RIGHT", b, "RIGHT", -4, 0)
@@ -187,6 +194,13 @@ local function CreateRollFrame(index)
     f:SetBackdrop(BACKDROP)
     f:SetBackdropColor(0.04, 0.04, 0.04, 0.9)
     f:SetBackdropBorderColor(0, 0, 0, 1)
+    local selection = CreateFrame("Frame", nil, f, "BackdropTemplate")
+    selection:SetPoint("TOPLEFT", f, "TOPLEFT", -3, 3)
+    selection:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", 3, -3)
+    selection:SetBackdrop({ edgeFile = FLAT, edgeSize = 3 })
+    selection:SetBackdropBorderColor(1, 1, 1, 1)
+    selection:Hide()
+    f.selection = selection
     f:EnableMouse(true)
     f:RegisterForDrag("LeftButton")
     f:SetScript("OnDragStart", function(self)
@@ -367,6 +381,7 @@ function RF.Layout()
     elseif queueLabel then
         queueLabel:Hide()
     end
+    if CL.Keyboard then CL.Keyboard.Layout() end
 end
 
 -------------------------------------------------
@@ -386,7 +401,7 @@ end
 local function Open(f, rollID, info, link, endTime, duration)
     f.rollID = rollID
     f.link = link
-    f.itemName, f.quality = info.name, info.quality
+    f.itemName, f.quality, f.bop = info.name, info.quality, info.bop
     f.reasonNeed, f.reasonGreed = info.reasonNeed, info.reasonGreed
     f.expiredFor = nil
     byRollID[rollID] = f
@@ -446,6 +461,7 @@ function RF.Start(rollID, info, link, rollTime)
     Open(f, rollID, info, link, endTime, duration)
     CL.Debug("roll %s shown: %s", tostring(rollID), tostring(info.name))
     RF.Layout()
+    if CL.Keyboard then CL.Keyboard.OnChanged() end
     return f
 end
 
@@ -463,13 +479,15 @@ function RF.Stop(rollID)
     if not f then return end
     byRollID[rollID] = nil
     f.rollID, f.link, f.endTime = nil, nil, nil
-    f.itemName, f.quality, f.votes, f.expiredFor = nil, nil, nil, nil
+    f.itemName, f.quality, f.bop, f.votes, f.expiredFor = nil, nil, nil, nil, nil
+    local removedIndex
     for i, a in ipairs(active) do
-        if a == f then table.remove(active, i) break end
+        if a == f then removedIndex = i table.remove(active, i) break end
     end
     f:Hide()
     FillFromQueue()
     RF.Layout()
+    if CL.Keyboard then CL.Keyboard.OnRemoved(rollID, removedIndex, f) end
 end
 
 function RF.IsQueued(rollID)
@@ -517,4 +535,14 @@ end
 
 function RF.GetFrame(rollID)
     return byRollID[rollID]
+end
+
+function RF.VisibleFrames()
+    local frames = {}
+    for i, f in ipairs(active) do frames[i] = f end
+    return frames
+end
+
+function RF.Anchor()
+    return GetAnchor()
 end

@@ -1,7 +1,5 @@
 local _, CL = ...
 
--- Everything a player sets lives in the options panel; the slash command is for
--- opening it and for the testing tools.
 local HELP = {
     "/cll               open the options panel",
     "/cll sim [n]       simulate n loot rolls (1-8) with a fake group",
@@ -9,6 +7,9 @@ local HELP = {
     "/cll sim group <n> other players in the simulated group (1-39, default 4)",
     "/cll sim clear     remove the simulated rolls",
     "/cll restore       bring back rolls still running (automatic at login and /reload)",
+    "/cll next|previous select a visible loot roll",
+    "/cll inspect       toggle the selected item's inspection",
+    "/cll need|greed|pass  roll on the selected item",
     "/cll debug [on|off]  trace every roll in chat (why one did or did not show)",
 }
 
@@ -41,6 +42,9 @@ SlashCmdList["CLEANLOOT"] = function(msg)
     elseif cmd == "restore" then
         local n = CL.RestoreRolls()
         CL.Print(n > 0 and ("%d running roll(s) brought back."):format(n) or "no running roll to bring back.")
+    elseif cmd == "next" or cmd == "previous" or cmd == "inspect"
+        or cmd == "need" or cmd == "greed" or cmd == "pass" then
+        CL.Keyboard.Action(cmd)
     else
         CL.Print("v" .. CL.Version() .. " -- commands:")
         for _, line in ipairs(HELP) do print("  " .. line) end

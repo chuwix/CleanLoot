@@ -17,6 +17,7 @@ Core.lua
 Native.lua
 Toasts.lua
 RollFrames.lua
+Keyboard.lua
 Results.lua
 Sim.lua
 Options.lua

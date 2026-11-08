@@ -26,6 +26,9 @@ local DEFAULTS = {
     hideNative = true,  -- hide Blizzard's own roll frames, ours replace them
     hideRollSpam = true,  -- keep the per-roll lines out of the chat
     showResults = true,  -- a small popup with who won each roll, and with what
+    keyboardEnabled = false,
+    keyboardInspect = false,
+    keyboardInspectSide = "RIGHT",
 }
 
 function CL.Print(msg)
